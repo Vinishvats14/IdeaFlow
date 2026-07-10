@@ -1,0 +1,29 @@
+package com.vinu.cms.enums;
+
+public enum PermissionType {
+
+    CREATE_USER,
+    UPDATE_USER,
+    DELETE_USER,
+    VIEW_USERS,
+
+    CREATE_ARTICLE,
+    UPDATE_ARTICLE,
+    DELETE_ARTICLE,
+    PUBLISH_ARTICLE,
+    VIEW_ARTICLE,
+
+    CREATE_CATEGORY,
+    UPDATE_CATEGORY,
+    DELETE_CATEGORY,
+
+    CREATE_TAG,
+    UPDATE_TAG,
+    DELETE_TAG,
+
+    UPLOAD_MEDIA,
+    DELETE_MEDIA,
+
+    VIEW_DASHBOARD
+
+}
