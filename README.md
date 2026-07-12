@@ -2,6 +2,10 @@
 
 A production-style Content Management System built with Spring Boot on the backend and React + Vite on the frontend. It supports public article browsing and a role-based admin dashboard for managing articles, categories, tags, media, and users.
 
+## Access Live Link
+- Live Link :- https://idea-flow-mocha.vercel.app
+
+
 ## Features
 
 - Public blog homepage with search, category filtering, and tag filtering.
@@ -66,12 +70,31 @@ Unless your deployment overrides bootstrap values, the seeded admin account is:
 
 ## Screenshots
 
-The screenshots show the main CMS experience across public and admin views.
+The screenshots below show the main CMS experience across public and admin views.
 
-- Dashboard overview: a summary screen with article, category, tag, and media stats plus the latest updated article.
-- Articles management: a table-based admin page for searching, filtering, publishing, archiving, editing, and deleting articles.
-- User accounts control: an admin panel for viewing system users, their roles, and account status.
-- Public homepage: a clean landing page for visitors to browse articles, filter by category or tag, and open article details.
+### Public Homepage
+
+![Public homepage](cms-frontend/src/assets/OuterPage.png)
+
+A clean landing page for visitors to browse articles, filter by category or tag, and open article details.
+
+### Dashboard Overview
+
+![Dashboard overview](cms-frontend/src/assets/DashboardPage.png)
+
+A summary screen with article, category, tag, and media stats plus the latest updated article.
+
+### Articles Management
+
+![Articles management](cms-frontend/src/assets/Article.png)
+
+A table-based admin page for searching, filtering, publishing, archiving, editing, and deleting articles.
+
+### User Accounts Control
+
+![User accounts control](cms-frontend/src/assets/UserAccountControl.png)
+
+An admin panel for viewing system users, their roles, and account status.
 
 ## Notes
 
