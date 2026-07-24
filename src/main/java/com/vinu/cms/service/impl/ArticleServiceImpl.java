@@ -15,9 +15,12 @@ import com.vinu.cms.repository.ArticleRepository;
 import com.vinu.cms.repository.CategoryRepository;
 import com.vinu.cms.repository.TagRepository;
 import com.vinu.cms.repository.UserRepository;
+import com.vinu.cms.repository.NotificationRepository;
+import com.vinu.cms.entity.Notification;
 import com.vinu.cms.service.ArticleService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -35,7 +38,10 @@ public class ArticleServiceImpl implements ArticleService {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
 
+    // for notification and enabling spring stomp for the persistence websocket connection
+    private final SimpMessagingTemplate messagingTemplate;
     @Override
     @Transactional
     public ArticleResponse create(CreateArticleRequest request, String authorEmail) {
@@ -65,7 +71,21 @@ public class ArticleServiceImpl implements ArticleService {
             article.setPublishedAt(LocalDateTime.now());
         }
 
-        return toResponse(articleRepository.save(article));
+        Article savedArticle = articleRepository.save(article);
+
+        // 2. Ek badhiya sa notification message taiyar karo.
+        String notificationPayload = author.getFullName() + " just published a new article: " + savedArticle.getTitle();
+
+        // 3. Radio station par broadcast karo!
+        // Maan lo Author ki ID 123 hai, toh destination banega: "/topic/author/123"
+        // Har wo user jisne is topic ko subscribe kiya hua hai, use ye payload mil jayega.
+        String destination = "/topic/author/" + author.getId();
+
+        if (savedArticle.getStatus() == ArticleStatus.PUBLISHED) {
+            sendNotificationsForArticle(savedArticle, notificationPayload, destination);
+        }
+
+        return toResponse(savedArticle);
     }
 
     @Override
@@ -83,6 +103,8 @@ public class ArticleServiceImpl implements ArticleService {
         article.setTitle(request.getTitle());
         article.setExcerpt(request.getExcerpt());
         article.setContent(request.getContent());
+        ArticleStatus oldStatus = article.getStatus();
+
         if (request.getStatus() != null) {
             article.setStatus(request.getStatus());
             if (request.getStatus() == ArticleStatus.PUBLISHED && article.getPublishedAt() == null) {
@@ -100,7 +122,16 @@ public class ArticleServiceImpl implements ArticleService {
         article.setCategory(resolveCategory(request.getCategoryId()));
         article.setTags(resolveTags(request.getTagIds()));
 
-        return toResponse(articleRepository.save(article));
+        Article savedArticle = articleRepository.save(article);
+
+        if (oldStatus != ArticleStatus.PUBLISHED && savedArticle.getStatus() == ArticleStatus.PUBLISHED) {
+            User author = savedArticle.getAuthor();
+            String notificationPayload = author.getFullName() + " just published a new article: " + savedArticle.getTitle();
+            String destination = "/topic/author/" + author.getId();
+            sendNotificationsForArticle(savedArticle, notificationPayload, destination);
+        }
+
+        return toResponse(savedArticle);
     }
 
     @Override
@@ -169,12 +200,39 @@ public class ArticleServiceImpl implements ArticleService {
     public ArticleResponse publish(Long id) {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Article not found with id " + id));
+        ArticleStatus oldStatus = article.getStatus();
         article.setStatus(ArticleStatus.PUBLISHED);
         article.setVisibility(Visibility.PUBLIC);
         if (article.getPublishedAt() == null) {
             article.setPublishedAt(LocalDateTime.now());
         }
-        return toResponse(articleRepository.save(article));
+        Article savedArticle = articleRepository.save(article);
+
+        if (oldStatus != ArticleStatus.PUBLISHED) {
+            User author = savedArticle.getAuthor();
+            String notificationPayload = author.getFullName() + " just published a new article: " + savedArticle.getTitle();
+            String destination = "/topic/author/" + author.getId();
+            sendNotificationsForArticle(savedArticle, notificationPayload, destination);
+        }
+
+        return toResponse(savedArticle);
+    }
+
+    private void sendNotificationsForArticle(Article savedArticle, String notificationPayload, String destination) {
+        User author = savedArticle.getAuthor();
+        Set<User> subscribers = author.getSubscribers();
+        if (subscribers != null && !subscribers.isEmpty()) {
+            for (User subscriber : subscribers) {
+                Notification notification = Notification.builder()
+                        .type("NEW_ARTICLE")
+                        .message(notificationPayload)
+                        .readFlag(false)
+                        .user(subscriber)
+                        .build();
+                notificationRepository.save(notification);
+            }
+        }
+        messagingTemplate.convertAndSend(destination, notificationPayload);
     }
 
     @Override
@@ -218,6 +276,7 @@ public class ArticleServiceImpl implements ArticleService {
                 .updatedAt(article.getUpdatedAt())
                 .authorName(article.getAuthor().getFullName())
                 .authorEmail(article.getAuthor().getEmail())
+                .authorId(article.getAuthor().getId())
                 .categoryId(article.getCategory() != null ? article.getCategory().getId() : null)
                 .categoryName(article.getCategory() != null ? article.getCategory().getName() : null)
                 .tags(article.getTags().stream().map(Tag::getSlug).collect(Collectors.toSet()))
@@ -233,3 +292,8 @@ public class ArticleServiceImpl implements ArticleService {
                 .replaceAll("-+", "-");
     }
 }
+//
+//Isko humne Business Logic Layer (ArticleService) mein likha hai, wo bhi articleRepository.save(article) ke theek baad. Kyun? Kyunki agar database mein save hone se pehle hi error aa gaya (jaise database crash ya validation fail), toh notification nahi jaani chahiye. Jab database confirm kar deta hai ki "Ha, article save ho gaya", tabhi hum notification bhejte hain.
+//Isse Kya Hoga?
+//Jaise hi code messagingTemplate.convertAndSend() par pahuchega, backend turant ek message pack karega aur use /topic/author/123 par phenk (broadcast) dega.
+//Isse database ka naya data aur real-time event dono sync ho jaate hain.

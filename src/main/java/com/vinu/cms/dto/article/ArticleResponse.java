@@ -26,6 +26,7 @@ public class ArticleResponse {
     private LocalDateTime updatedAt;
     private String authorName;
     private String authorEmail;
+    private Long authorId;
     private Long categoryId;
     private String categoryName;
     private Set<String> tags;

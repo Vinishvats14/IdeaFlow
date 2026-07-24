@@ -18,4 +18,12 @@ public interface UserService {
     List<UserResponse> getAll();
 
     void delete(Long id);
+
+    void subscribe(String subscriberEmail, Long authorId);
+
+    void unsubscribe(String subscriberEmail, Long authorId);
+
+    boolean isSubscribed(String subscriberEmail, Long authorId);
+
+    List<UserResponse> getSubscriptions(String subscriberEmail);
 }

@@ -91,6 +91,51 @@ public class UserServiceImpl implements UserService {
         userRepository.delete(user);
     }
 
+    @Override
+    @Transactional
+    public void subscribe(String subscriberEmail, Long authorId) {
+        User subscriber = userRepository.findByEmail(subscriberEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Author not found"));
+        if (subscriber.getId().equals(author.getId())) {
+            throw new BadRequestException("You cannot subscribe to yourself");
+        }
+        subscriber.getSubscriptions().add(author);
+        userRepository.save(subscriber);
+    }
+
+    @Override
+    @Transactional
+    public void unsubscribe(String subscriberEmail, Long authorId) {
+        User subscriber = userRepository.findByEmail(subscriberEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Author not found"));
+        subscriber.getSubscriptions().remove(author);
+        userRepository.save(subscriber);
+    }
+
+    @Override
+    @Transactional
+    public boolean isSubscribed(String subscriberEmail, Long authorId) {
+        User subscriber = userRepository.findByEmail(subscriberEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Author not found"));
+        return subscriber.getSubscriptions().contains(author);
+    }
+
+    @Override
+    @Transactional
+    public List<UserResponse> getSubscriptions(String subscriberEmail) {
+        User subscriber = userRepository.findByEmail(subscriberEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return subscriber.getSubscriptions().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getId(),
