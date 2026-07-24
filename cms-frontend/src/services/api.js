@@ -187,5 +187,27 @@ export const api = {
       request(`/users/${id}`, {
         method: 'DELETE',
       }),
+    subscribe: (authorId) => 
+      request(`/users/subscribe/${authorId}`, {
+        method: 'POST',
+      }),
+    unsubscribe: (authorId) => 
+      request(`/users/unsubscribe/${authorId}`, {
+        method: 'POST',
+      }),
+    checkSubscription: (authorId) => request(`/users/subscriptions/check/${authorId}`),
+    getSubscriptions: () => request('/users/subscriptions'),
+  },
+
+  notifications: {
+    list: () => request('/notifications'),
+    markAsRead: (id) => 
+      request(`/notifications/${id}/read`, {
+        method: 'PUT',
+      }),
+    markAllAsRead: () => 
+      request('/notifications/read-all', {
+        method: 'PUT',
+      }),
   },
 };

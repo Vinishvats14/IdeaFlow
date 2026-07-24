@@ -20,6 +20,7 @@ import CategoriesManager from './pages/CategoriesManager';
 import TagsManager from './pages/TagsManager';
 import MediaManager from './pages/MediaManager';
 import UsersManager from './pages/UsersManager';
+import NotificationsManager from './pages/NotificationsManager';
 
 // Role Guard Component
 function RoleGuard({ allowedRoles, children }) {
@@ -104,6 +105,12 @@ export default function App() {
               <Route path="users" element={
                 <RoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                   <UsersManager />
+                </RoleGuard>
+              } />
+              
+              <Route path="notifications" element={
+                <RoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN', 'EDITOR', 'AUTHOR', 'VIEWER']}>
+                  <NotificationsManager />
                 </RoleGuard>
               } />
             </Route>

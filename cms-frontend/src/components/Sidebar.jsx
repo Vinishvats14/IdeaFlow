@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -10,11 +11,13 @@ import {
   Users, 
   ArrowLeft, 
   LogOut,
-  BookOpen
+  BookOpen,
+  Bell
 } from 'lucide-react';
 
 export default function Sidebar() {
   const { user, logout, hasRole } = useAuth();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -60,6 +63,36 @@ export default function Sidebar() {
       label: 'Users Control',
       icon: <Users size={20} />,
       roles: ['SUPER_ADMIN', 'ADMIN']
+    },
+    {
+      path: '/dashboard/notifications',
+      label: 'Notifications',
+      icon: (
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <Bell size={20} />
+          {unreadCount > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              backgroundColor: 'var(--danger)',
+              color: '#fff',
+              fontSize: '10px',
+              fontWeight: '700',
+              borderRadius: '50%',
+              width: '16px',
+              height: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+            }}>
+              {unreadCount}
+            </span>
+          )}
+        </div>
+      ),
+      roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR', 'AUTHOR', 'VIEWER']
     }
   ];
 

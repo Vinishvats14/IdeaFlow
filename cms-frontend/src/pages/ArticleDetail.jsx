@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { Calendar, User, Clock, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function ArticleDetail() {
   const { slug } = useParams();
   const [article, setArticle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  const { user } = useAuth();
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
 
   useEffect(() => {
     async function fetchArticle() {
@@ -24,6 +29,38 @@ export default function ArticleDetail() {
     }
     fetchArticle();
   }, [slug]);
+
+  useEffect(() => {
+    async function checkSub() {
+      if (user && article && article.authorId && user.email !== article.authorEmail) {
+        try {
+          const res = await api.users.checkSubscription(article.authorId);
+          setIsSubscribed(res);
+        } catch (err) {
+          console.error("Error checking subscription:", err);
+        }
+      }
+    }
+    checkSub();
+  }, [user, article]);
+
+  const handleSubscribeToggle = async () => {
+    if (!article || !article.authorId) return;
+    setSubscribing(true);
+    try {
+      if (isSubscribed) {
+        await api.users.unsubscribe(article.authorId);
+        setIsSubscribed(false);
+      } else {
+        await api.users.subscribe(article.authorId);
+        setIsSubscribed(true);
+      }
+    } catch (err) {
+      alert(err.message || "Failed to update subscription");
+    } finally {
+      setSubscribing(false);
+    }
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Unpublished';
@@ -80,9 +117,30 @@ export default function ArticleDetail() {
         )}
         <h1 className="reader-title">{article.title}</h1>
         
-        <div className="reader-meta">
-          <span className="flex items-center gap-1">
+        <div className="reader-meta" style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+          <span className="flex items-center gap-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
             <User size={16} /> By {article.authorName}
+            {user && user.email !== article.authorEmail && (
+              <button
+                onClick={handleSubscribeToggle}
+                disabled={subscribing}
+                style={{
+                  marginLeft: '12px',
+                  padding: '4px 12px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  borderRadius: '16px',
+                  border: '1px solid var(--primary)',
+                  backgroundColor: isSubscribed ? 'transparent' : 'var(--primary)',
+                  color: isSubscribed ? 'var(--primary)' : '#fff',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+              >
+                {subscribing ? 'Loading...' : isSubscribed ? 'Subscribed' : 'Subscribe'}
+              </button>
+            )}
           </span>
           <span className="flex items-center gap-1">
             <Calendar size={16} /> {formatDate(article.publishedAt || article.createdAt)}
